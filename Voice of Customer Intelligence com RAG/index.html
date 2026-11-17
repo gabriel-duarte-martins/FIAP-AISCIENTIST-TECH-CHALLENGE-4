@@ -1,0 +1,210 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Voice of Customer Intelligence com RAG | Olist</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.9/dist/css/bootstrap.min.css">
+<style>
+:root { --ink:#20283c; --accent:#e8cfa9; --muted:#53596a; --paper:#f6f3ec; }
+* { border-radius:0 !important; }
+body { color:var(--ink); background:var(--paper); font-family:Inter,system-ui,sans-serif; }
+.shell { max-width:1120px; }
+header { background:var(--ink); color:white; }
+.mark { display:inline-grid; place-items:center; width:36px; height:36px; background:var(--accent); color:var(--ink); }
+.hero { padding-block:clamp(3rem,8vw,6rem) 2.5rem; }
+h1 { font-size:clamp(2.15rem,5vw,4.1rem); line-height:1.06; letter-spacing:-.055em; text-wrap:balance; font-weight:750; }
+.eyebrow { text-transform:uppercase; letter-spacing:.12em; font-size:.75rem; font-weight:750; }
+.muted { color:var(--muted); }
+.panel { background:white; border:1px solid #ddd5c8; }
+.primary { background:var(--ink); color:white; border:1px solid var(--ink); }
+.primary:hover,.primary:focus-visible { background:var(--accent); color:var(--ink); border-color:var(--ink); }
+.primary:disabled { background:#555e73; color:white; }
+.examples { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:.5rem; }
+@media (max-width:991.98px) {
+  .examples { grid-template-columns:repeat(6,minmax(0,1fr)); }
+  .examples .example { grid-column:span 2; }
+  .examples .example:nth-last-child(-n+2) { grid-column:span 3; }
+}
+@media (max-width:575.98px) {
+  .examples { grid-template-columns:1fr; }
+  .examples .example:nth-child(n) { grid-column:auto; }
+}
+.example { min-height:3rem; display:grid; place-items:center; line-height:1.25; border:1px solid #b8ada0; color:var(--ink); background:transparent; }
+.example:hover { background:#f1e7d7; }
+.form-control:focus { border-color:#53658c; box-shadow:0 0 0 .18rem #dce3f2; }
+.answer { white-space:pre-wrap; overflow-wrap:anywhere; }
+.source { border-top:1px solid #ddd5c8; }
+.source-id { overflow-wrap:anywhere; font-size:.75rem; }
+.source-number { background:var(--accent); color:var(--ink); font-weight:750; padding:.2rem .45rem; }
+</style>
+</head>
+<body>
+<header>
+  <div class="container shell d-flex justify-content-between align-items-center gap-3 py-3">
+    <div class="d-flex align-items-center gap-2 fw-semibold">
+      <span class="mark" aria-hidden="true">V</span> Tech Challenge Fase 4
+    </div>
+    <span class="small text-white-50">Llama 3.2 · Local</span>
+  </div>
+</header>
+<main class="container shell pb-5">
+  <section class="hero">
+    <p class="eyebrow muted mb-3">Avaliações da Olist</p>
+    <h1 class="mb-3">Voice of Customer Intelligence com RAG</h1>
+    <p class="muted fs-5 mb-0">Explore as experiências de compra e confira os relatos que sustentam cada resposta.</p>
+  </section>
+
+  <form class="panel p-3 p-md-4" id="form">
+    <label class="form-label fw-semibold" for="pergunta">Sua pergunta</label>
+    <textarea class="form-control p-3" id="pergunta" rows="3" maxlength="1000" placeholder="O que você quer descobrir sobre as avaliações?" required></textarea>
+    <div class="d-flex flex-wrap align-items-center gap-2 mt-3">
+      <button class="btn primary px-4 py-2 fw-semibold" type="submit" id="enviar">Buscar avaliações <span aria-hidden="true">↗</span></button>
+    </div>
+    <div class="mt-4 pt-3 border-top" role="group" aria-labelledby="titulo-exemplos">
+      <h2 class="h6 mb-2" id="titulo-exemplos">Exemplos de exploração</h2>
+      <div class="examples">
+        <button class="btn example" type="button" data-pergunta="Quais são os principais problemas relatados pelos clientes em suas avaliações?">Principais reclamações</button>
+        <button class="btn example" type="button" data-pergunta="O que os clientes relatam sobre problemas relacionados à entrega?">Problemas na entrega</button>
+        <button class="btn example" type="button" data-pergunta="Quais aspectos da experiência de compra são mais elogiados pelos clientes?">Experiências positivas</button>
+        <button class="btn example" type="button" data-pergunta="Quais padrões podem ser identificados nas avaliações de clientes insatisfeitos?">Padrões de insatisfação</button>
+        <button class="btn example" type="button" data-pergunta="Quais avaliações sustentam a conclusão de que existem problemas recorrentes relacionados ao prazo de entrega?">Evidências sobre prazos</button>
+      </div>
+    </div>
+    <div class="mt-3 pt-3 border-top" role="group" aria-labelledby="titulo-fora-escopo">
+      <h2 class="h6 mb-2" id="titulo-fora-escopo">Testes fora do escopo</h2>
+      <div class="d-flex flex-wrap gap-2">
+        <button class="btn example" type="button" data-pergunta="Qual era o faturamento da Olist em 2018?">Faturamento da Olist</button>
+        <button class="btn example" type="button" data-pergunta="Qual é a capital da Austrália?">Capital da Austrália</button>
+      </div>
+    </div>
+  </form>
+  <p class="mt-3 mb-0 muted" id="estado" role="status"></p>
+
+  <section id="resultado" class="row g-3 mt-2" aria-label="Resultado da busca" hidden>
+    <div class="col-12" id="coluna-resposta">
+      <article class="panel p-3 p-md-4">
+        <h2 class="h4 mb-3">Resposta</h2>
+        <div class="answer" id="resposta"></div>
+      </article>
+    </div>
+    <aside class="col-lg-5" id="painel-fontes" hidden>
+      <div class="panel p-3 p-md-4">
+        <h2 class="h5 mb-3" id="titulo-fontes">Fontes citadas</h2>
+        <p class="small muted" id="aviso-fontes" hidden>A resposta não indicou quais avaliações usou.</p>
+        <div id="fontes"></div>
+      </div>
+    </aside>
+  </section>
+</main>
+<script>
+const form = document.querySelector("#form");
+const pergunta = document.querySelector("#pergunta");
+const enviar = document.querySelector("#enviar");
+const estado = document.querySelector("#estado");
+const resultado = document.querySelector("#resultado");
+const resposta = document.querySelector("#resposta");
+const fontes = document.querySelector("#fontes");
+const painelFontes = document.querySelector("#painel-fontes");
+const tituloFontes = document.querySelector("#titulo-fontes");
+const avisoFontes = document.querySelector("#aviso-fontes");
+const colunaResposta = document.querySelector("#coluna-resposta");
+
+for (const exemplo of document.querySelectorAll("[data-pergunta]")) {
+  exemplo.addEventListener("click", () => {
+    pergunta.value = exemplo.dataset.pergunta;
+    pergunta.focus();
+  });
+}
+
+function mostrarFonte(fonte, citada) {
+  const item = document.createElement("article");
+  item.className = "source py-3";
+  const numero = document.createElement("span");
+  numero.className = "source-number";
+  numero.textContent = "[" + fonte.numero + "]" + (citada ? " Citada" : "");
+  const texto = document.createElement("p");
+  texto.className = "small my-2";
+  texto.textContent = fonte.texto;
+  const ids = document.createElement("div");
+  ids.className = "source-id muted";
+  ids.textContent = "Avaliação " + fonte.review_id + " · Pedido " + fonte.order_id;
+  item.append(numero, texto, ids);
+  fontes.append(item);
+}
+
+form.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const texto = pergunta.value.trim();
+  if (!texto || enviar.disabled) return;
+
+  enviar.disabled = true;
+  resultado.hidden = true;
+  estado.textContent = "Consultando as avaliações e gerando a resposta…";
+  try {
+    const retorno = await fetch("/api/pergunta", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({pergunta: texto}),
+    });
+    const dados = await retorno.json();
+    if (!retorno.ok) throw new Error(dados.erro);
+    resposta.replaceChildren();
+    let lista = null;
+    for (const linha of dados.resposta.split(/\r?\n/)) {
+      const item = linha.match(/^\s*\*\s+(.+)$/);
+      let destino;
+      if (item) {
+        if (!lista) {
+          lista = document.createElement("ul");
+          lista.className = "mb-0";
+          resposta.append(lista);
+        }
+        destino = document.createElement("li");
+        lista.append(destino);
+      } else {
+        lista = null;
+        destino = document.createElement("div");
+        resposta.append(destino);
+      }
+
+      const texto = item ? item[1] : linha;
+      if (!texto) destino.append(document.createElement("br"));
+      texto.split(/\*\*([^*\r\n]+)\*\*/g).forEach((trecho, i) => {
+        if (i % 2 === 0) {
+          destino.append(trecho);
+        } else {
+          const negrito = document.createElement("strong");
+          negrito.textContent = trecho;
+          destino.append(negrito);
+        }
+      });
+    }
+    fontes.replaceChildren();
+    const citacoes = new Set();
+    for (const grupo of dados.resposta.matchAll(/\[\s*(\d+(?:\s*[,;]\s*\d+)*)\s*\]/g)) {
+      grupo[1].split(/[,;]/).forEach(numero => citacoes.add(Number(numero)));
+    }
+    const fontesCitadas = dados.fontes.filter(fonte => citacoes.has(fonte.numero));
+    const abertura = dados.resposta.trim().split(/\n|\.(?:\s|$)/, 1)[0];
+    const semEvidencias = /(?:avaliações|relatos|fontes)[^.!?]*?não (?:contêm|fornecem|trazem|apresentam) (?:informações|evidências|dados)|(?:avaliações|relatos|fontes)[^.!?]*?são insuficientes|não (?:há|existem) (?:informações|evidências|dados) suficientes/i.test(abertura);
+    const temCitacoes = fontesCitadas.length > 0;
+    const fontesExibidas = semEvidencias && !temCitacoes ? [] : dados.fontes;
+    tituloFontes.textContent = "Avaliações recuperadas";
+    avisoFontes.hidden = temCitacoes || fontesExibidas.length === 0;
+    fontesExibidas.forEach(fonte => mostrarFonte(fonte, citacoes.has(fonte.numero)));
+    painelFontes.hidden = fontesExibidas.length === 0;
+    colunaResposta.classList.toggle("col-lg-7", fontesExibidas.length > 0);
+    resultado.hidden = false;
+    estado.textContent = "Resposta pronta.";
+  } catch (erro) {
+    estado.textContent = erro instanceof TypeError
+      ? "Não foi possível conectar à aplicação local. Confira se o servidor está rodando."
+      : erro.message;
+  } finally {
+    enviar.disabled = false;
+  }
+});
+</script>
+</body>
+</html>
