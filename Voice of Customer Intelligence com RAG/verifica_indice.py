@@ -8,7 +8,7 @@ avaliacoes = pd.read_csv(
     database / "avaliacoes_limpas.csv", dtype=str, keep_default_na=False
 )
 
-with np.load(database / "indice_avaliacoes.npz", allow_pickle=False) as indice:
+with np.load(database / "indice_avaliacoes_spacy.npz", allow_pickle=False) as indice:
     vetores = indice["vetores"]
 
     if vetores.shape != (40827, 300) or not np.isfinite(vetores).all():

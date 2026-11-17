@@ -1,9 +1,10 @@
-import re
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
 from gensim.models.fasttext import load_facebook_vectors
+
+from tokenizacao import tokenizar
 
 pasta = Path(__file__).resolve().parent
 avaliacoes = pd.read_csv(
@@ -16,7 +17,7 @@ modelo = load_facebook_vectors(str(pasta / "wiki.pt.bin"))
 
 
 def vetor_do_texto(texto):
-    palavras = re.findall(r"[^\W_]+", texto.lower())
+    palavras = tokenizar(texto)
     if not palavras:
         raise ValueError("O texto precisa ter pelo menos uma letra ou número.")
 
@@ -38,7 +39,7 @@ for indice, texto in enumerate(avaliacoes["mensagem_limpa"]):
     if processadas % 5000 == 0 or processadas == total:
         print(f"{processadas}/{total} avaliações processadas", flush=True)
 
-caminho_indice = pasta / "database" / "indice_avaliacoes.npz"
+caminho_indice = pasta / "database" / "indice_avaliacoes_spacy.npz"
 
 np.savez(
     caminho_indice,

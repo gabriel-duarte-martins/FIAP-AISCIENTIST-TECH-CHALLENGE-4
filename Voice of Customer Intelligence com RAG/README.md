@@ -29,6 +29,8 @@ O terminal mostra as contagens e uma prévia das cinco primeiras avaliações fi
 
 ## Embeddings e busca semântica
 
+O tokenizador de português do spaCy separa as palavras dos comentários, das perguntas e das frases usadas para identificar a intenção. A mesma tokenização é usada na geração do índice e na busca.
+
 O script `testar_embeddings.py` usa o Gensim para carregar o fastText pré-treinado na Wikipédia em português. Cada avaliação recebe um vetor de **300 dimensões**, calculado pela média dos vetores das palavras e normalizado para a comparação por similaridade de cosseno. A consulta passa pelo mesmo processo.
 
 Ao gerar o índice, `testar_embeddings.py` também permite experimentar a busca com três resultados. A aplicação e a consulta com Llama reutilizam o índice salvo e recuperam até cinco comentários do índice de **40.827 avaliações**, com filtro por nota conforme a intenção da pergunta. A pontuação mede a proximidade entre os vetores. Para avaliar a relevância, confira o texto recuperado.
@@ -36,7 +38,7 @@ Ao gerar o índice, `testar_embeddings.py` também permite experimentar a busca 
 ### Como gerar o índice e testar a busca
 
 1. Baixe e extraia o binário do modelo em português. Coloque `wiki.pt.bin` na raiz do projeto, ao lado de `testar_embeddings.py`. [Vetores pré-treinados do fastText](https://fasttext.cc/docs/en/pretrained-vectors)
-2. Abra `testar_embeddings.py` no VS Code e clique em **Executar Arquivo Python**. A versão atual recalcula os vetores a cada execução e salva `database/indice_avaliacoes.npz`.
+2. Abra `testar_embeddings.py` no VS Code e clique em **Executar Arquivo Python**. A versão atual recalcula os vetores a cada execução e salva `database/indice_avaliacoes_spacy.npz`.
 3. Quando aparecer **Sua pergunta**, digite uma consulta, como “Algum cliente relatou que não recebeu o produto?”. Pressione Enter com a linha vazia para sair.
 
 ### Como verificar o índice salvo
@@ -45,7 +47,29 @@ Execute `verifica_indice.py` no VS Code. O script reabre o índice sem carregar 
 
 ## Como funciona o RAG
 
-1. O fastText transforma a pergunta em um vetor usando o mesmo processo aplicado aos comentários.
+```mermaid
+flowchart TB
+    subgraph P["Preparação do índice"]
+        A["CSV original de avaliações da Olist"] --> B["pandas · limpa e exporta 40.827 comentários"]
+        B --> C["spaCy em português · separa o texto em tokens"]
+        C --> D["Gensim e fastText · obtêm os vetores das palavras"]
+        D --> E["NumPy · calcula a média e normaliza o vetor de cada comentário"]
+        E --> F["Índice NPZ · guarda vetores, comentários e IDs"]
+    end
+
+    subgraph Q["Consulta e resposta"]
+        G["Pergunta do usuário"] --> H["spaCy, fastText e NumPy · geram o vetor da pergunta"]
+        H --> I["Compara com frases de exemplo e filtra por nota conforme a intenção"]
+        A -->|Notas associadas pelo par de IDs| I
+        I --> J["NumPy · recupera até cinco relatos elegíveis por similaridade de cosseno"]
+        F --> J
+        G --> K["Ollama executa o Llama 3.2 · recebe a pergunta e os relatos numerados"]
+        J --> K
+        K --> L["Resposta em português com citações ou indicação de evidência insuficiente"]
+    end
+```
+
+1. O spaCy separa a pergunta em tokens. O Gensim consulta o fastText, e o NumPy calcula a média dos vetores e normaliza o resultado, como na preparação dos comentários.
 2. A busca compara o vetor da pergunta com frases de exemplo para identificar a intenção. Quando a intenção é negativa, considera notas 1 e 2. Quando é positiva, considera notas 4 e 5. Para perguntas gerais ou ambíguas, considera todas as notas. As notas vêm do CSV original e são associadas pelo par de IDs. O NumPy seleciona até cinco relatos elegíveis pela similaridade de cosseno.
 3. O script envia a pergunta e os relatos selecionados e numerados ao **Llama 3.2 (3B)** pelo **Ollama**.
 4. O modelo recebe instruções para responder em português, citar as fontes usadas e indicar quando os relatos forem insuficientes. Cada número remete a um comentário e ao par `review_id` e `order_id` exibidos na interface.

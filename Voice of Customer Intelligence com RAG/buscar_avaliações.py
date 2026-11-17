@@ -1,14 +1,15 @@
 import csv
-import re
 from pathlib import Path
 
 import numpy as np
 import ollama
 from gensim.models.fasttext import load_facebook_vectors
 
+from tokenizacao import tokenizar
+
 
 def vetor_da_pergunta(pergunta, modelo):
-    palavras = re.findall(r"[^\W_]+", pergunta.lower())
+    palavras = tokenizar(pergunta)
     if not palavras:
         raise ValueError("Digite uma pergunta com pelo menos uma letra ou número.")
 
@@ -62,7 +63,7 @@ EXEMPLOS_INTENCAO = {
 class BuscaAvaliacoes:
     def __init__(self):
         pasta = Path(__file__).resolve().parent
-        caminho_indice = pasta / "database" / "indice_avaliacoes.npz"
+        caminho_indice = pasta / "database" / "indice_avaliacoes_spacy.npz"
 
         with np.load(caminho_indice, allow_pickle=False) as indice:
             self.vetores = indice["vetores"]
