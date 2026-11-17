@@ -49,24 +49,30 @@ Execute `verifica_indice.py` no VS Code. O script reabre o índice sem carregar 
 
 ```mermaid
 flowchart TB
-    subgraph P["Preparação do índice"]
-        A["CSV original de avaliações da Olist"] --> B["pandas · limpa e exporta 40.827 comentários"]
-        B --> C["spaCy em português · separa o texto em tokens"]
-        C --> D["Gensim e fastText · obtêm os vetores das palavras"]
-        D --> E["NumPy · calcula a média e normaliza o vetor de cada comentário"]
-        E --> F["Índice NPZ · guarda vetores, comentários e IDs"]
+    subgraph PREP["Preparação do índice"]
+        direction LR
+        A["Avaliações Olist"] --> B["pandas<br/>Limpeza dos comentários"]
+        B --> C["spaCy + fastText<br/>Tokens e vetores"]
+        C --> D["Índice NPZ<br/>Vetores, relatos e IDs"]
     end
 
-    subgraph Q["Consulta e resposta"]
-        G["Pergunta do usuário"] --> H["spaCy, fastText e NumPy · geram o vetor da pergunta"]
-        H --> I["Compara com frases de exemplo e filtra por nota conforme a intenção"]
-        A -->|Notas associadas pelo par de IDs| I
-        I --> J["NumPy · recupera até cinco relatos elegíveis por similaridade de cosseno"]
-        F --> J
-        G --> K["Ollama executa o Llama 3.2 · recebe a pergunta e os relatos numerados"]
-        J --> K
-        K --> L["Resposta em português com citações ou indicação de evidência insuficiente"]
+    subgraph QUERY["A cada pergunta"]
+        direction LR
+        E["Pergunta"] --> F["spaCy + fastText<br/>Vetor da pergunta"]
+        F --> G["Busca no NumPy<br/>Intenção, notas e similaridade"]
+        G --> H["Até cinco relatos"]
+        H --> I["Llama 3.2 via Ollama<br/>Pergunta e relatos numerados"]
+        I --> J["Resposta em português<br/>Citações ou falta de evidência"]
     end
+
+    PREP -->|Índice e notas das avaliações| QUERY
+
+    classDef entrada fill:#f3e8d7,stroke:#ae9a80,color:#20283c
+    classDef processo fill:#edf0f7,stroke:#7180a0,color:#20283c
+    classDef saida fill:#20283c,stroke:#20283c,color:#ffffff
+    class A,E entrada
+    class B,C,F,G,I processo
+    class D,H,J saida
 ```
 
 1. O spaCy separa a pergunta em tokens. O Gensim consulta o fastText, e o NumPy calcula a média dos vetores e normaliza o resultado, como na preparação dos comentários.
