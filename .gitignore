@@ -1,2 +1,10 @@
+__pycache__/
+*.py[cod]
+.venv/
+.env
+.env.*
+/wiki.pt.bin
+/wiki.pt.vec
+/database/*.csv
+/database/*.npz
 /Testes/
-/__pycache__/
